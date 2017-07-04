@@ -63,7 +63,7 @@ data Tree a = Empty
 
 
 instance Functor Tree where
-  fmap f Empty = Empty
+  fmap _ Empty = Empty
   fmap f (Node x l r) = Node (f x) (fmap f l) (fmap f r)
 
 -- Some sample trees
@@ -144,7 +144,7 @@ data Crumb a = LeftCrumb a (Tree a)
 
 type Breadcrumbs a = [Crumb a]
 
-data Zipper a = Zipper (Tree a)[Crumb a]
+data Zipper a = Zipper (Tree a) (Breadcrumbs a)
   deriving Show
 
 goLeft :: Zipper a -> Zipper a
@@ -154,12 +154,12 @@ goRight :: Zipper a -> Zipper a
 goRight (Zipper (Node x l r) bs) = Zipper r (RightCrumb x l : bs)
 
 goUp :: Zipper a -> Zipper a
-goUp (Zipper t ((LeftCrumb x r):bs))  = Zipper (Node x t r) bs
-goUp (Zipper t ((RightCrumb x l):bs)) = Zipper (Node x l t) bs
+goUp (Zipper t (LeftCrumb  x r : bs)) = Zipper (Node x t r) bs
+goUp (Zipper t (RightCrumb x l : bs)) = Zipper (Node x l t) bs
 
 modify :: (a -> a) -> Zipper a -> Zipper a
 modify f (Zipper (Node x l r) bs) = Zipper (Node (f x) l r) bs
-modify f (Zipper Empty        bs) = Zipper Empty bs
+modify _ (Zipper Empty        bs) = Zipper Empty bs
 
 attach :: Tree a -> Zipper a -> Zipper a
 attach t (Zipper _ bs) = Zipper t bs
@@ -186,9 +186,9 @@ instance Show a => Drawable (Tree a) where
                                                     translate r]
 
 instance Show a => Drawable (Zipper a) where
-  translate (Zipper t []) = T.Node "ZIP" [(translate t), (T.Node "[]" [])]
-  translate (Zipper t bs) = T.Node "ZIP" ((translate t) : (fmap translate bs))
+  translate (Zipper t []) = T.Node "ZIP" [translate t, T.Node "[]" []]
+  translate (Zipper t bs) = T.Node "ZIP" (translate t : fmap translate bs)
 
 instance Show a => Drawable (Crumb a) where
-  translate (LeftCrumb a t)  = T.Node "LC" [T.Node (show a) [], (translate t)]
-  translate (RightCrumb a t) = T.Node "RC" [(translate t), T.Node (show a) []]
+  translate (LeftCrumb a t)  = T.Node "LC" [T.Node (show a) [], translate t]
+  translate (RightCrumb a t) = T.Node "RC" [translate t, T.Node (show a) []]
